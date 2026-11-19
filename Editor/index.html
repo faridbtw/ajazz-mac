@@ -1,0 +1,1407 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ajazz-mac</title>
+<style>
+  :root {
+    --fondo: #f2f2f5; --panel: #ffffff; --texto: #1d1d1f; --suave: #6e6e73; --borde: #d2d2d7;
+    --tecla: #fdfdfe; --tecla-borde: #c4c4ca; --tecla-sombra: #b9b9c0;
+    --acento: #0a6cff; --acento-suave: #e3eeff; --acento-texto: #0a4fbf;
+    --pendiente: #c76a00; --pendiente-suave: #fff1dc;
+    --apagada: #e6e6ea; --error: #c4001a; --error-suave: #ffe8eb; --bien: #1f7a36; --bien-suave: #e4f6e8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #161618; --panel: #222225; --texto: #f2f2f4; --suave: #a1a1a8; --borde: #3a3a3f;
+      --tecla: #2e2e33; --tecla-borde: #46464d; --tecla-sombra: #0d0d0f;
+      --acento: #4b93ff; --acento-suave: #1b2c48; --acento-texto: #9cc2ff;
+      --pendiente: #ffb147; --pendiente-suave: #3d2a10;
+      --apagada: #1c1c1f; --error: #ff6b7d; --error-suave: #3f1a20; --bien: #5fd37c; --bien-suave: #183222;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--texto);
+         font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 120px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  h1 small { font-weight: 400; color: var(--suave); font-size: 15px; margin-left: 6px; }
+  .segmentos { display: inline-flex; background: var(--apagada); border-radius: 9px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+  .segmentos button { border: 0; background: transparent; color: var(--texto); font: inherit; padding: 6px 12px;
+                      border-radius: 7px; cursor: pointer; }
+  .segmentos button:disabled { opacity: .5; cursor: default; }
+  .segmentos button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 3px rgba(0,0,0,.18); font-weight: 600; }
+  .tarjeta { background: var(--panel); border: 1px solid var(--borde); border-radius: 14px; padding: 16px; }
+  #zona-teclado { overflow: hidden; }
+  #teclado { position: relative; margin: 0 auto; }
+  .tecla { position: absolute; border: 1px solid var(--tecla-borde); border-bottom-width: 3px; border-bottom-color: var(--tecla-sombra);
+           background: var(--tecla); color: var(--texto); border-radius: 7px; padding: 3px 5px; cursor: pointer; font: inherit;
+           display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; text-align: left; overflow: hidden; }
+  .tecla:hover:not(:disabled) { border-color: var(--acento); }
+  .tecla .et { font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .tecla .mac { position: absolute; right: 5px; top: 3px; font-size: 11px; color: var(--suave); }
+  .tecla .asig { font-size: 10.5px; line-height: 1.15; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--acento-texto); font-weight: 600; }
+  .tecla .fabrica { font-size: 10px; line-height: 1.15; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--suave); }
+  .tecla.cambiada { background: var(--acento-suave); border-color: var(--acento); }
+  .tecla.pendiente { background: var(--pendiente-suave); border-color: var(--pendiente); }
+  .tecla.pendiente .asig { color: var(--pendiente); }
+  .tecla.pendiente::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--pendiente); }
+  .tecla.elegida { outline: 3px solid var(--acento); outline-offset: 1px; }
+  .tecla:disabled { background: var(--apagada); color: var(--suave); cursor: not-allowed; border-bottom-width: 1px; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--suave); font-size: 13px; }
+  .leyenda span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--tecla-borde); }
+  .leyenda .l-cambiada::before { background: var(--acento-suave); border-color: var(--acento); }
+  .leyenda .l-pendiente::before { background: var(--pendiente-suave); border-color: var(--pendiente); }
+  .leyenda .l-apagada::before { background: var(--apagada); }
+  #panel { margin-top: 16px; }
+  #panel h2 { font-size: 18px; margin: 0 0 4px; }
+  #panel .ahora { color: var(--suave); margin: 0 0 14px; }
+  .vacio { color: var(--suave); text-align: center; padding: 18px 0; margin: 0; }
+  .fila { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+  label.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; cursor: pointer; user-select: none; }
+  label.chip:has(input:checked) { border-color: var(--acento); background: var(--acento-suave); }
+  select, input[type=text], input[type=number] { font: inherit; color: var(--texto); background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 7px 9px; }
+  input[type=text] { width: min(100%, 420px); }
+  input[type=number] { width: 80px; }
+  .opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 12px 0; }
+  .opciones button { font: inherit; text-align: left; padding: 9px 12px; border: 1px solid var(--borde); border-radius: 9px; background: var(--panel); color: var(--texto); cursor: pointer; }
+  .opciones button[aria-pressed="true"] { border-color: var(--acento); background: var(--acento-suave); font-weight: 600; }
+  .nota { color: var(--suave); font-size: 13px; margin: 6px 0; }
+  .botones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .boton { font: inherit; border-radius: 9px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+  .boton.principal { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+  .boton:disabled { opacity: .5; cursor: default; }
+  .boton.captando { border-color: var(--pendiente); color: var(--pendiente); }
+  #barra { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--borde); }
+  #barra .dentro { max-width: 1080px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  #estado { flex: 1 1 220px; color: var(--suave); }
+  #estado.hay { color: var(--pendiente); font-weight: 600; }
+  #mensaje { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; display: none; }
+  #mensaje.bien { display: block; background: var(--bien-suave); color: var(--bien); }
+  #mensaje.error { display: block; background: var(--error-suave); color: var(--error); }
+  #mensaje.info { display: block; background: var(--acento-suave); color: var(--acento-texto); }
+  [hidden] { display: none !important; }
+  .conexion { font-size: 13px; color: var(--suave); display: inline-flex; align-items: center; gap: 6px; }
+  .conexion::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--suave); }
+  .conexion.si::before { background: var(--bien); }
+  .conexion.no::before { background: var(--error); }
+  .cabecera-seccion { margin-bottom: 12px; }
+  .tarjeta h2 { font-size: 16px; margin: 22px 0 8px; }
+  .tarjeta h2:first-child { margin-top: 0; }
+  .muestras { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .muestra { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--borde); cursor: pointer; padding: 0; }
+  .muestra[aria-pressed="true"] { outline: 3px solid var(--acento); outline-offset: 2px; }
+  input[type=color] { width: 46px; height: 32px; border: 1px solid var(--borde); border-radius: 8px; background: var(--panel); padding: 2px; cursor: pointer; }
+  .deslizadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px 28px; margin-top: 8px; }
+  .deslizadores label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+  .deslizadores .valor { color: var(--suave); font-weight: 400; font-size: 13px; }
+  input[type=range] { width: 100%; accent-color: var(--acento); }
+  .estado-linea { color: var(--suave); font-size: 13px; margin: 14px 0 0; min-height: 1.4em; }
+  #pintura { position: relative; margin: 6px auto 0; touch-action: none; user-select: none; }
+  .luz { position: absolute; border-radius: 7px; border: 1px solid rgba(0,0,0,.25); cursor: crosshair;
+         font-size: 11px; font-weight: 600; padding: 3px 5px; overflow: hidden; white-space: nowrap;
+         box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
+  .luz.propia { box-shadow: inset 0 -3px 0 rgba(0,0,0,.18), 0 0 0 2px rgba(255,255,255,.6); }
+  .luz.apagada { background: repeating-linear-gradient(135deg, #1b1c22, #1b1c22 6px, #23242b 6px, #23242b 12px) !important; }
+  .marco-pintura { background: #0e0f13; border-radius: 14px; padding: 14px; margin-top: 10px; overflow: hidden; }
+  .muestra.goma { background: repeating-linear-gradient(135deg, #fff, #fff 4px, #d0d0d6 4px, #d0d0d6 8px); }
+  .muestra.negra { background: #000 !important; }
+  .boton.peligro { border-color: var(--error); color: var(--error); }
+  #ayuda h2 { margin-top: 24px; }
+  #ayuda h2:first-child { margin-top: 0; }
+  #ayuda table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  #ayuda td, #ayuda th { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  #ayuda th { color: var(--suave); font-weight: 600; }
+  #ayuda kbd { font: 600 12px ui-monospace, Menlo, monospace; border: 1px solid var(--tecla-borde); border-bottom-width: 2px;
+               border-radius: 5px; padding: 1px 6px; background: var(--tecla); white-space: nowrap; }
+  #ajuste-fn .opciones { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); max-width: 760px; }
+  [data-pestana="ajustes"] .deslizadores { max-width: 440px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>AK820 <small>Ajazz AK820 Wired</small></h1>
+    <div class="segmentos" role="group" aria-label="Secciones">
+      <button type="button" data-ir="teclas" aria-pressed="true" data-t>Teclas</button>
+      <button type="button" data-ir="luces" aria-pressed="false" data-t>Luces</button>
+      <button type="button" data-ir="ajustes" aria-pressed="false" data-t>Ajustes</button>
+      <button type="button" data-ir="ayuda" aria-pressed="false" data-t>Ayuda</button>
+    </div>
+    <span id="conexion" class="conexion" data-t>Comprobando…</span>
+  </header>
+
+  <p id="mensaje" role="status"></p>
+  <div class="botones" id="permission-controls" hidden style="margin: 0 0 16px">
+    <button type="button" class="boton principal" id="input-monitoring">Open Input Monitoring</button>
+  </div>
+
+  <div data-pestana="teclas">
+  <div class="cabecera-seccion">
+    <div class="segmentos" role="group" aria-label="Capa">
+      <button type="button" data-capa="normal" aria-pressed="true" data-t>Capa normal</button>
+      <button type="button" data-capa="fn" aria-pressed="false" disabled title="The wired AK820 has one editable layer." data-t>Capa Fn (Fn + tecla)</button>
+    </div>
+  </div>
+
+  <section class="tarjeta" id="zona-teclado">
+    <div id="teclado" aria-label="Teclado"></div>
+    <div class="leyenda">
+      <span class="l-cambiada" data-t>Cambiada en el teclado</span>
+      <span class="l-pendiente" data-t>Cambio sin enviar</span>
+      <span class="l-apagada" data-t>No se puede cambiar en esta capa</span>
+    </div>
+  </section>
+
+  <section class="tarjeta" id="panel">
+    <p class="vacio" data-t>Pincha una tecla del dibujo para cambiar lo que hace.</p>
+  </section>
+  </div>
+
+  <div data-pestana="luces" hidden>
+    <section class="tarjeta">
+      <h2 data-t>Efecto</h2>
+      <div class="opciones" id="efectos"></div>
+      <div id="controles-efecto">
+      <h2 data-t>Color</h2>
+      <div class="muestras" id="muestras">
+        <input type="color" id="color" title="Otro color">
+        <label class="chip"><input type="checkbox" id="arcoiris"> <span data-t>Arcoíris (todos los colores)</span></label>
+      </div>
+      <div class="deslizadores">
+        <label><span data-t>Brillo</span> <input type="range" id="brillo" min="1" max="5"><span class="valor" id="brillo-valor"></span></label>
+        <label><span data-t>Velocidad</span> <input type="range" id="velocidad" min="1" max="5"><span class="valor" id="velocidad-valor"></span></label>
+        <label><span data-t>Dirección</span> <select id="direccion"></select></label>
+      </div>
+      </div>
+      <div id="single-key-panel" hidden>
+        <h2>One key color</h2>
+        <div class="fila">
+          <select id="single-key" aria-label="Key">
+            <option value="">Choose a key…</option>
+          </select>
+          <input type="color" id="single-key-color" aria-label="Key color" value="#ff0000">
+          <button type="button" class="boton" id="apply-single-key" disabled>Apply to key</button>
+        </div>
+        <p class="nota" id="single-key-note" aria-live="polite"></p>
+      </div>
+      <div id="musica-panel" hidden>
+        <h2 data-t>Modo música</h2>
+        <p class="nota" data-t>Las luces siguen el sonido del Mac: cada columna de teclas es una banda, con los
+          graves a la izquierda. La primera vez, macOS pide permiso para «grabar el audio del sistema».
+          Mientras está en marcha no se pueden cambiar otras cosas del teclado.</p>
+        <div class="opciones" id="modos-musica"></div>
+        <div class="botones"><button type="button" class="boton principal" id="boton-musica" data-t>▶︎ Empezar</button></div>
+        <p class="estado-linea" id="estado-musica"></p>
+      </div>
+      <div id="pintor" hidden>
+        <h2 data-t>Pinta las teclas</h2>
+        <p class="nota" data-t>Elige un color y pincha las teclas (o arrastra por encima). Las rayadas están apagadas.</p>
+        <div class="muestras" id="pinceles">
+          <input type="color" id="pincel-color" title="Otro color">
+        </div>
+        <div class="marco-pintura"><div id="pintura"></div></div>
+        <div class="fila">
+          <span data-t>El resto de teclas:</span>
+          <input type="color" id="fondo" title="Color del resto de teclas">
+          <button type="button" class="boton" id="fondo-apagado" data-t>Apagadas</button>
+          <button type="button" class="boton" id="pintar-todas" data-t>Todas del color elegido</button>
+        </div>
+        <div class="deslizadores">
+          <label><span data-t>Brillo</span> <input type="range" id="pintura-brillo" min="1" max="5"><span class="valor" id="pintura-brillo-valor"></span></label>
+        </div>
+        <div class="botones">
+          <button type="button" class="boton principal" id="enviar-colores" data-t>Enviar al teclado</button>
+          <button type="button" class="boton" id="deshacer-colores" data-t>Deshacer cambios</button>
+        </div>
+        <p class="nota" id="solo-cable-colores" hidden data-t>⚠︎ Con el receptor 2.4G no se pueden mandar los colores
+          tecla a tecla: conecta el teclado por cable. Los que ya tiene se quedan guardados.</p>
+        <p class="estado-linea" id="estado-colores"></p>
+      </div>
+      <div class="botones"><button type="button" class="boton" id="apagar-luces" data-t>Apagar las luces</button></div>
+      <p class="estado-linea" id="estado-luces"></p>
+    </section>
+  </div>
+
+  <div data-pestana="ajustes" hidden>
+    <section class="tarjeta">
+      <h2 data-t>Tecla Fn</h2>
+      <div id="ajuste-fn"></div>
+      <div hidden><h2 data-t>Apagar las luces si no se usa</h2>
+      <div class="segmentos" id="ajuste-reposo"></div>
+      <p class="nota" data-t>Solo con batería (por Bluetooth o 2.4G): enchufado por cable no se apagan.</p></div>
+      <h2>Polling rate</h2><div id="polling"></div>
+      <h2 data-t>Tiempo de respuesta de las teclas</h2>
+      <div class="deslizadores">
+        <label><span data-t>Nivel</span> <input type="range" id="respuesta" min="1" max="4"><span class="valor" id="respuesta-valor"></span></label>
+      </div>
+      <p class="nota">1 is the fastest and 4 is the slowest.</p>
+      <h2>Keyboard behavior</h2>
+      <div class="fila" id="ajuste-bloqueos"></div>
+      <div class="botones">
+        <button type="button" class="boton principal" id="guardar-ajustes" data-t>Guardar en el teclado</button>
+        <button type="button" class="boton" id="ajustes-fabrica" hidden data-t>Valores de fábrica</button>
+      </div>
+      <p class="estado-linea" id="estado-ajustes"></p>
+    </section>
+    <section class="tarjeta" style="margin-top: 16px">
+      <h2 data-t>Volver a empezar</h2>
+      <p class="nota" data-t>«Volver a mandar» envía al teclado lo que este Mac tiene guardado (teclas, luces o colores y
+        ajustes): sirve si el teclado se ha reseteado o lo has usado en otro ordenador. Use the keyboard’s factory shortcut if you need a full reset.</p>
+      <div class="botones">
+        <button type="button" class="boton" id="reenviar-todo" data-t>Volver a mandar mi configuración</button>
+        <button type="button" class="boton peligro" id="todo-fabrica" hidden data-t>Dejar el teclado de fábrica</button>
+        <button type="button" class="boton" id="deshacer-fabrica" hidden></button>
+      </div>
+      <p class="estado-linea" id="estado-reinicio"></p>
+    </section>
+  </div>
+
+  <div data-pestana="ayuda" hidden>
+    <section class="tarjeta" id="ayuda"></section>
+  </div>
+</main>
+
+<div id="barra">
+  <div class="dentro">
+    <span id="estado" data-t>Cargando…</span>
+    <button type="button" class="boton" id="deshacer" data-t>Deshacer cambios</button>
+    <button type="button" class="boton" id="fabrica" data-t>Todo de fábrica</button>
+    <button type="button" class="boton principal" id="enviar" data-t>Enviar al teclado</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+document.addEventListener("contextmenu", (event) => {
+  if (!event.target.closest("textarea, input[type=text], input[type=number], [contenteditable=true]")) {
+    event.preventDefault();
+  }
+});
+// Idioma: el servidor pone aquí las traducciones (idiomas/<idioma>.json) y el idioma del Mac.
+const TEXTOS = {} /*TEXTOS*/;
+const IDIOMA = "es" /*IDIOMA*/;
+function tr(frase, datos) {
+  const texto = TEXTOS[frase] || frase;
+  return datos ? texto.replace(/\{(\w+)\}/g, (todo, hueco) => (hueco in datos ? datos[hueco] : todo)) : texto;
+}
+(function traducirPagina() {
+  document.documentElement.lang = IDIOMA;
+  for (const el of document.querySelectorAll("[data-t]")) el.textContent = tr(el.textContent.replace(/\s+/g, " ").trim());
+  for (const el of document.querySelectorAll("[title]")) el.title = tr(el.title);
+  for (const el of document.querySelectorAll("[aria-label]")) el.setAttribute("aria-label", tr(el.getAttribute("aria-label")));
+})();
+const ANCHO_TECLADO = 610, ALTO_TECLADO = 236;
+
+// --- Nombres para enseñar --------------------------------------------------------
+const SIMBOLO_MOD = { ctrl: "⌃", shift: "⇧", option: "⌥", alt: "⌥", cmd: "⌘", win: "⌘",
+                      ctrl_der: "⌃", shift_der: "⇧", option_der: "⌥", alt_der: "⌥", cmd_der: "⌘", win_der: "⌘" };
+const NOMBRE_MOD = { ctrl: "⌃ Control", shift: "⇧ Shift", option: "⌥ Option", cmd: "⌘ Cmd" };
+const NOMBRE_TECLA = { enter: tr("↩ Enter"), esc: "Esc", borrar: tr("⌫ Borrar"), tab: tr("⇥ Tab"), espacio: tr("Espacio"),
+  bloqmayus: tr("⇪ Bloq Mayús"), imprpant: tr("Impr Pant"), insert: "Insert", inicio: tr("Inicio"), fin: tr("Fin"),
+  repag: tr("RePág"), avpag: tr("AvPág"), supr: tr("Supr"), arriba: "↑", abajo: "↓", izquierda: "←", derecha: "→" };
+const CORTO_TECLA = { enter: "↩", borrar: "⌫", tab: "⇥", espacio: tr("Espacio"), bloqmayus: "⇪", imprpant: tr("ImpPnt") };
+const MULTIMEDIA = { play: tr("⏯ Reproducir / pausa"), siguiente: tr("⏭ Siguiente"), anterior: tr("⏮ Anterior"), stop: tr("⏹ Parar"),
+  silencio: tr("🔇 Silencio"), "volumen+": tr("🔊 Subir volumen"), "volumen-": tr("🔉 Bajar volumen"),
+  "brillo+": tr("🔆 Subir brillo"), "brillo-": tr("🔅 Bajar brillo") };
+const CORTO_MULTIMEDIA = { play: "⏯", siguiente: "⏭", anterior: "⏮", stop: "⏹", silencio: "🔇",
+  "volumen+": "🔊+", "volumen-": "🔉−", "brillo+": "🔆+", "brillo-": "🔅−" };
+const RATON = { clic: tr("Clic"), clic_der: tr("Clic derecho"), clic_medio: tr("Clic central"), doble_clic: tr("Doble clic"),
+  rueda_arriba: tr("Rueda arriba"), rueda_abajo: tr("Rueda abajo") };
+const CORTO_RATON = { clic: tr("Clic"), clic_der: tr("Clic dcho"), clic_medio: tr("Clic centr"), doble_clic: tr("2 clics"),
+  rueda_arriba: tr("Rueda ↑"), rueda_abajo: tr("Rueda ↓") };
+const MODOS = { una: tr("Una vez"), veces: tr("Varias veces seguidas"), mantener: tr("Mientras se mantiene pulsada"),
+  alternar: tr("Hasta volver a pulsarla"), paso: tr("Una letra por pulsación") };
+const TIPOS = [["fabrica", tr("De fábrica")], ["tecla", tr("Tecla o atajo")], ["multimedia", tr("Multimedia")],
+               ["raton", tr("Ratón")]];
+const CODIGO_NAVEGADOR = { Enter: "enter", Escape: "esc", Backspace: "borrar", Tab: "tab", Space: "espacio",
+  Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\", Semicolon: ";", Quote: "'",
+  Backquote: "`", Comma: ",", Period: ".", Slash: "/", CapsLock: "bloqmayus", PrintScreen: "imprpant",
+  Insert: "insert", Home: "inicio", PageUp: "repag", Delete: "supr", End: "fin", PageDown: "avpag",
+  ArrowRight: "derecha", ArrowLeft: "izquierda", ArrowDown: "abajo", ArrowUp: "arriba" };
+
+const nombreTecla = (t) => NOMBRE_TECLA[t] || t.toUpperCase();
+const cortoTecla = (t) => CORTO_TECLA[t] || nombreTecla(t);
+// "alt"/"win" son "option"/"cmd" en el Mac; los derechos se enseñan igual que los izquierdos.
+const modBase = (p) => { const b = p.replace("_der", ""); return { alt: "option", win: "cmd" }[b] || b; };
+
+function resumen(asig) {
+  const d = asig.destino, dl = d.toLowerCase();
+  if (dl.startsWith("texto:")) {
+    const marca = { veces: ` ×${asig.veces || 1}`, mantener: " ⟳", alternar: " ⇆", paso: " ⋯" }[asig.modo] || "";
+    return `“${d.slice(6)}”${marca}`;
+  }
+  if (dl.startsWith("multi:")) return dl.slice(6).split("+").map(cortoTecla).join("+");
+  if (CORTO_MULTIMEDIA[dl]) return CORTO_MULTIMEDIA[dl];
+  if (CORTO_RATON[dl]) return CORTO_RATON[dl];
+  const partes = dl.split("+");
+  return partes.map((p) => SIMBOLO_MOD[p] || cortoTecla(p)).join("");
+}
+function describir(asig) {
+  if (!asig) return tr("De fábrica");
+  const d = asig.destino, dl = d.toLowerCase();
+  if (dl.startsWith("texto:")) return tr("Escribe “{texto}” ({modo})", { texto: d.slice(6),
+    modo: MODOS[asig.modo || "una"].toLowerCase() + (asig.modo === "veces" ? tr(": {n} veces", { n: asig.veces }) : "") });
+  if (dl.startsWith("multi:")) return tr("Pulsa a la vez {teclas}", { teclas: dl.slice(6).split("+").map(nombreTecla).join(" + ") });
+  if (MULTIMEDIA[dl]) return MULTIMEDIA[dl];
+  if (RATON[dl]) return RATON[dl];
+  return dl.split("+").map((p) => SIMBOLO_MOD[p] ? NOMBRE_MOD[modBase(p)] : nombreTecla(p)).join(" + ");
+}
+
+// --- Estado -------------------------------------------------------------------------
+const hardware = {} /*DEVICE*/;
+let distribucion = hardware.layout || [], catalogo = hardware.catalog || null;
+let loaded = false, initializing = false;
+let guardado = { normal: {}, fn: {} };      // lo que tiene el teclado (lo último enviado)
+let actual = { normal: {}, fn: {} };        // lo que se está editando
+let capa = "normal", elegida = null, enviando = false;
+
+const igual = (a, b) => JSON.stringify(a || null) === JSON.stringify(b || null);
+const copia = (o) => JSON.parse(JSON.stringify(o));
+function pendientes() {
+  let n = 0;
+  for (const c of ["normal", "fn"]) {
+    const nombres = new Set([...Object.keys(actual[c]), ...Object.keys(guardado[c])]);
+    for (const t of nombres) if (!igual(actual[c][t], guardado[c][t])) n++;
+  }
+  return n;
+}
+const bloqueada = (t) => !t.nombre || (capa === "fn" && catalogo.no_cambiables_fn.includes(t.nombre));
+
+// Lo que hace cada tecla con Fn de fábrica (manual del AK820 Pro). [corto para el dibujo, explicación]
+function deFabrica(capaTecla, nombre) {
+  return undefined;
+}
+
+// --- Comunicación con el servidor ----------------------------------------------------
+async function api(ruta, cuerpo) {
+  const r = await window.webkit.messageHandlers.keyboard.postMessage({ path: ruta, body: cuerpo || {} });
+  if (r.bridgeError) throw new Error(r.bridgeError);
+  return r;
+}
+function avisar(texto, tipo) {
+  const m = document.getElementById("mensaje");
+  m.textContent = texto;
+  m.className = texto ? tipo : "";
+}
+
+// --- Dibujo del teclado ----------------------------------------------------------------
+function dibujarTeclado() {
+  const zona = document.getElementById("teclado");
+  const disponible = document.getElementById("zona-teclado").clientWidth - 34;
+  const escala = disponible > 0 ? Math.min(1.65, disponible / ANCHO_TECLADO) : 1;
+  zona.style.width = ANCHO_TECLADO * escala + "px";
+  zona.style.height = ALTO_TECLADO * escala + "px";
+  zona.replaceChildren();
+  for (const t of distribucion) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tecla";
+    Object.assign(b.style, { left: t.x * escala + "px", top: t.y * escala + "px",
+                             width: t.ancho * escala + "px", height: t.alto * escala + "px" });
+    const et = document.createElement("span");
+    et.className = "et";
+    et.textContent = tr(t.etiqueta);
+    b.append(et);
+    if (bloqueada(t)) {
+      b.disabled = true;
+      const fabrica = deFabrica(capa, t.nombre);
+      b.title = fabrica ? tr("Fn + {tecla}: {funcion} (no se puede cambiar)", { tecla: tr(t.etiqueta), funcion: fabrica[1] })
+              : t.nombre ? tr("Esta tecla no se puede cambiar en la capa Fn") : tr("La tecla Fn no se puede cambiar");
+    } else {
+      const asig = actual[capa][t.nombre];
+      if (t.mac && !asig) {
+        const mac = document.createElement("span");
+        mac.className = "mac";
+        mac.textContent = t.mac;
+        b.title = tr("En modo Mac hace de {tecla}", { tecla: t.mac === "⌘" ? "Cmd" : "Option" });
+        b.append(mac);
+      }
+      if (asig) {
+        const a = document.createElement("span");
+        a.className = "asig";
+        a.textContent = resumen(asig);
+        b.append(a);
+        b.title = describir(asig);
+      } else if (deFabrica(capa, t.nombre)) {
+        const [corto, largo] = deFabrica(capa, t.nombre);
+        if (corto) {
+          const f = document.createElement("span");
+          f.className = "fabrica";
+          f.textContent = corto;
+          b.append(f);
+        }
+        b.title = tr("De fábrica: {funcion}", { funcion: largo });
+      }
+      if (!igual(asig, guardado[capa][t.nombre])) b.classList.add("pendiente");
+      else if (asig) b.classList.add("cambiada");
+      if (t.nombre === elegida) b.classList.add("elegida");
+      b.disabled = !loaded;
+      if (!loaded) b.title = "Connect the keyboard to edit this key.";
+      b.addEventListener("click", () => elegir(t.nombre));
+    }
+    zona.append(b);
+  }
+  const n = pendientes();
+  const estado = document.getElementById("estado");
+  estado.textContent = !loaded ? "Keyboard layout preview" : n ? (n === 1 ? tr("1 cambio sin enviar") : tr("{n} cambios sin enviar", { n }))
+                          : tr("El teclado tiene lo que ves");
+  estado.className = n ? "hay" : "";
+  document.getElementById("deshacer").disabled = !n || enviando;
+  const enviar = document.getElementById("enviar");
+  enviar.textContent = enviando ? tr("Enviando…") : n ? tr("Enviar al teclado") : tr("Reenviar al teclado");
+  enviar.disabled = enviando || !loaded;
+  document.getElementById("fabrica").disabled = enviando || !loaded;
+}
+
+// --- Panel de la tecla elegida -----------------------------------------------------------
+let tipo = "fabrica", borrador = {};
+
+function tipoDe(asig) {
+  if (!asig) return ["fabrica", {}];
+  const d = asig.destino, dl = d.toLowerCase();
+  if (dl.startsWith("texto:")) return ["texto", { texto: d.slice(6), modo: asig.modo || "una", veces: asig.veces || 2 }];
+  if (dl.startsWith("multi:")) return ["multi", { teclas: dl.slice(6).split("+") }];
+  if (MULTIMEDIA[dl]) return ["multimedia", { valor: dl }];
+  if (RATON[dl]) return ["raton", { valor: dl }];
+  const partes = dl.split("+");
+  const mods = partes.filter((p) => SIMBOLO_MOD[p]).map(modBase);
+  const tecla = partes.find((p) => !SIMBOLO_MOD[p]) || "";
+  return ["tecla", { mods, tecla }];
+}
+
+function elegir(nombre) {
+  elegida = nombre;
+  [tipo, borrador] = tipoDe(actual[capa][nombre]);
+  avisar("", "");
+  dibujarTeclado();
+  dibujarPanel();
+}
+
+function asignacionDelBorrador() {
+  switch (tipo) {
+    case "fabrica": return null;
+    case "tecla": {
+      if (!borrador.tecla && !(borrador.mods || []).length) throw new Error(tr("Elige una tecla o algún modificador."));
+      return { destino: [...(borrador.mods || []), borrador.tecla].filter(Boolean).join("+") };
+    }
+    case "multimedia": case "raton":
+      if (!borrador.valor) throw new Error(tr("Elige una opción."));
+      return { destino: borrador.valor };
+    case "texto": {
+      if (!borrador.texto) throw new Error(tr("Escribe el texto."));
+      const a = { destino: "texto:" + borrador.texto, modo: borrador.modo || "una", veces: 1 };
+      if (a.modo === "veces") a.veces = Math.max(2, Math.min(253, parseInt(borrador.veces, 10) || 2));
+      return a;
+    }
+    case "multi": {
+      const teclas = (borrador.teclas || []).filter(Boolean);
+      if (teclas.length < 2) throw new Error(tr("Elige al menos dos teclas."));
+      return { destino: "multi:" + teclas.join("+") };
+    }
+  }
+}
+
+function selectorTeclas(valor, alCambiar, conVacio) {
+  const s = document.createElement("select");
+  const grupos = [[tr("Letras"), (t) => /^[a-z]$/.test(t)], [tr("Números"), (t) => /^\d$/.test(t)],
+                  [tr("Funciones"), (t) => /^f\d+$/.test(t)], [tr("Navegación y edición"), (t) => NOMBRE_TECLA[t]],
+                  [tr("Símbolos"), () => true]];
+  const vacia = document.createElement("option");
+  vacia.value = "";
+  vacia.textContent = conVacio;
+  s.append(vacia);
+  const usadas = new Set();
+  for (const [titulo, filtro] of grupos) {
+    const g = document.createElement("optgroup");
+    g.label = titulo;
+    for (const t of catalogo.teclas) {
+      if (usadas.has(t) || !filtro(t)) continue;
+      usadas.add(t);
+      const o = document.createElement("option");
+      o.value = t;
+      o.textContent = nombreTecla(t);
+      g.append(o);
+    }
+    s.append(g);
+  }
+  s.value = valor || "";
+  s.addEventListener("change", () => alCambiar(s.value));
+  return s;
+}
+
+function botonesOpciones(opciones, valor, alElegir) {
+  const caja = document.createElement("div");
+  caja.className = "opciones";
+  for (const [clave, texto] of Object.entries(opciones)) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = texto;
+    b.setAttribute("aria-pressed", String(clave === valor));
+    b.addEventListener("click", () => alElegir(clave));
+    caja.append(b);
+  }
+  return caja;
+}
+
+function nota(texto) {
+  const p = document.createElement("p");
+  p.className = "nota";
+  p.textContent = texto;
+  return p;
+}
+
+let quitarCaptura = null;
+function capturar(boton) {
+  if (quitarCaptura) { quitarCaptura(); return; }
+  boton.textContent = tr("Pulsa la tecla o el atajo… (clic aquí para cancelar)");
+  boton.classList.add("captando");
+  const alPulsar = (e) => {
+    if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(e.key) && e.code !== "CapsLock") return;
+    e.preventDefault();
+    let t = CODIGO_NAVEGADOR[e.code];
+    if (!t && /^Key[A-Z]$/.test(e.code)) t = e.code.slice(3).toLowerCase();
+    if (!t && /^Digit\d$/.test(e.code)) t = e.code.slice(5);
+    if (!t && /^F\d+$/.test(e.code)) t = e.code.toLowerCase();
+    if (!t || !catalogo.teclas.includes(t)) { avisar(tr("Esa tecla no se puede asignar; elígela de la lista."), "error"); return; }
+    const mods = [];
+    if (e.ctrlKey) mods.push("ctrl");
+    if (e.shiftKey) mods.push("shift");
+    if (e.altKey) mods.push("option");
+    if (e.metaKey) mods.push("cmd");
+    borrador = { mods, tecla: t };
+    quitarCaptura();
+    dibujarPanel();
+  };
+  window.addEventListener("keydown", alPulsar, true);
+  quitarCaptura = () => {
+    window.removeEventListener("keydown", alPulsar, true);
+    quitarCaptura = null;
+    boton.textContent = tr("⌨︎ Capturar pulsando el atajo");
+    boton.classList.remove("captando");
+  };
+}
+
+function dibujarPanel() {
+  const panel = document.getElementById("panel");
+  if (quitarCaptura) quitarCaptura();
+  panel.replaceChildren();
+  if (!elegida) {
+    const p = document.createElement("p");
+    p.className = "vacio";
+    p.textContent = tr("Pincha una tecla del dibujo para cambiar lo que hace.");
+    panel.append(p);
+    return;
+  }
+  const t = distribucion.find((x) => x.nombre === elegida);
+  const h = document.createElement("h2");
+  h.textContent = `${tr(t.etiqueta || tr("Espacio"))} · ${capa === "fn" ? tr("con Fn") : tr("capa normal")}`;
+  const ahora = document.createElement("p");
+  ahora.className = "ahora";
+  const enTeclado = guardado[capa][elegida];
+  const fabrica = !enTeclado && deFabrica(capa, elegida);
+  ahora.textContent = tr("En el teclado: ") + (fabrica ? tr("de fábrica, {funcion}", { funcion: fabrica[1] }) : describir(enTeclado)) +
+    (igual(actual[capa][elegida], enTeclado) ? "" : tr(" · Sin enviar: ") + describir(actual[capa][elegida]));
+  const tipos = document.createElement("div");
+  tipos.className = "segmentos";
+  for (const [clave, texto] of TIPOS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = texto;
+    b.setAttribute("aria-pressed", String(clave === tipo));
+    b.addEventListener("click", () => { if (clave !== tipo) { tipo = clave; borrador = {}; dibujarPanel(); } });
+    tipos.append(b);
+  }
+  panel.append(h, ahora, tipos);
+
+  const cuerpo = document.createElement("div");
+  if (tipo === "fabrica") {
+    cuerpo.append(nota(tr("La tecla hará lo mismo que de fábrica.")));
+  } else if (tipo === "tecla") {
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    for (const m of catalogo.modificadores) {
+      const l = document.createElement("label");
+      l.className = "chip";
+      const c = document.createElement("input");
+      c.type = "checkbox";
+      c.checked = (borrador.mods || []).includes(m);
+      c.addEventListener("change", () => {
+        const mods = new Set(borrador.mods || []);
+        c.checked ? mods.add(m) : mods.delete(m);
+        borrador.mods = catalogo.modificadores.filter((x) => mods.has(x));
+      });
+      l.append(c, NOMBRE_MOD[m]);
+      fila.append(l);
+    }
+    fila.append(selectorTeclas(borrador.tecla, (v) => { borrador.tecla = v; }, tr("(solo modificadores)")));
+    const captura = document.createElement("button");
+    captura.type = "button";
+    captura.className = "boton";
+    captura.textContent = tr("⌨︎ Capturar pulsando el atajo");
+    captura.addEventListener("click", () => capturar(captura));
+    cuerpo.append(fila, captura,
+      nota(tr("Algunos atajos (⌘Tab, ⌘Espacio, ⌘Q…) los usa el Mac antes de que lleguen aquí: márcalos a mano. ") +
+           tr("Las teclas Win y Alt hacen de ⌥ y ⌘ en modo Mac, pero una tecla cambiada manda exactamente lo que elijas.")));
+  } else if (tipo === "multimedia" || tipo === "raton") {
+    const opciones = tipo === "multimedia" ? MULTIMEDIA : RATON;
+    cuerpo.append(botonesOpciones(opciones, borrador.valor, (v) => { borrador.valor = v; dibujarPanel(); }));
+    if (tipo === "raton") cuerpo.append(nota(tr("La rueda se mueve una muesca por pulsación. Los botones atrás/adelante no existen en este teclado.")));
+  } else if (tipo === "texto") {
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    const entrada = document.createElement("input");
+    entrada.type = "text";
+    entrada.maxLength = 300;
+    entrada.placeholder = tr("Texto que escribirá la tecla");
+    entrada.value = borrador.texto || "";
+    entrada.addEventListener("input", () => { borrador.texto = entrada.value; });
+    const modo = document.createElement("select");
+    for (const [clave, texto] of Object.entries(MODOS)) {
+      const o = document.createElement("option");
+      o.value = clave;
+      o.textContent = texto;
+      modo.append(o);
+    }
+    modo.value = borrador.modo || "una";
+    const veces = document.createElement("input");
+    veces.type = "number";
+    veces.min = 2;
+    veces.max = 255;
+    veces.value = borrador.veces || 2;
+    veces.hidden = modo.value !== "veces";
+    veces.addEventListener("input", () => { borrador.veces = veces.value; });
+    modo.addEventListener("change", () => { borrador.modo = modo.value; veces.hidden = modo.value !== "veces"; });
+    fila.append(entrada, modo, veces);
+    cuerpo.append(fila, nota(tr("Letras sin tilde, números, espacio y símbolos básicos. El teclado escribe como un teclado inglés: ") +
+                             tr("con el Mac en español, algunos símbolos pueden salir distintos.")));
+  } else if (tipo === "multi") {
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    const teclas = borrador.teclas || [];
+    for (let i = 0; i < 3; i++) {
+      fila.append(selectorTeclas(teclas[i], (v) => { borrador.teclas = [...(borrador.teclas || [])]; borrador.teclas[i] = v; }, i < 2 ? tr("Elige tecla") : tr("(ninguna)")));
+    }
+    cuerpo.append(fila, nota(tr("Hasta tres teclas normales a la vez. Para atajos con ⌘, ⇧, ⌥ o ⌃ usa «Tecla o atajo».")));
+  }
+  panel.append(cuerpo);
+
+  const botones = document.createElement("div");
+  botones.className = "botones";
+  const asignar = document.createElement("button");
+  asignar.type = "button";
+  asignar.className = "boton principal";
+  asignar.textContent = tr("Asignar a la tecla");
+  asignar.addEventListener("click", asignarTecla);
+  botones.append(asignar);
+  if (!igual(actual[capa][elegida], enTeclado)) {
+    const volver = document.createElement("button");
+    volver.type = "button";
+    volver.className = "boton";
+    volver.textContent = tr("Dejarla como en el teclado");
+    volver.addEventListener("click", () => {
+      if (enTeclado) actual[capa][elegida] = copia(enTeclado); else delete actual[capa][elegida];
+      elegir(elegida);
+    });
+    botones.append(volver);
+  }
+  panel.append(botones);
+}
+
+async function asignarTecla() {
+  let asig;
+  try { asig = asignacionDelBorrador(); }
+  catch (e) { avisar(e.message, "error"); return; }
+  if (asig) {
+    try {
+      const r = await api("/api/validar", { asignacion: asig });
+      if (!r.ok) { avisar(r.mensaje, "error"); return; }
+    } catch (e) { avisar(e.message, "error"); return; }
+    actual[capa][elegida] = asig;
+  } else {
+    delete actual[capa][elegida];
+  }
+  avisar(tr("Asignado. Cuando acabes, pulsa «Enviar al teclado»."), "info");
+  dibujarTeclado();
+  dibujarPanel();
+}
+
+// --- Botones de la barra ---------------------------------------------------------------
+async function enviarAlTeclado() {
+  enviando = true;
+  avisar(tr("Enviando al teclado…"), "info");
+  dibujarTeclado();
+  try {
+    const r = await api("/api/enviar", { config: actual });
+    if (r.ok) {
+      guardado = r.config;
+      actual = copia(r.config);
+      avisar(r.mensaje + tr(" Ya puedes probarlas."), "bien");
+    } else {
+      avisar(r.mensaje, "error");
+    }
+  } catch (e) {
+    avisar(e.message, "error");
+  }
+  enviando = false;
+  dibujarTeclado();
+  dibujarPanel();
+}
+
+document.getElementById("enviar").addEventListener("click", enviarAlTeclado);
+document.getElementById("deshacer").addEventListener("click", () => {
+  actual = copia(guardado);
+  avisar("", "");
+  dibujarTeclado();
+  if (elegida) elegir(elegida);
+});
+document.getElementById("fabrica").addEventListener("click", () => {
+  actual = { normal: {}, fn: {} };
+  avisar(tr("Todas las teclas de las dos capas quedan de fábrica. Pulsa «Enviar al teclado» para aplicarlo."), "info");
+  dibujarTeclado();
+  if (elegida) elegir(elegida);
+});
+for (const b of document.querySelectorAll("[data-capa]")) {
+  b.addEventListener("click", () => {
+    capa = b.dataset.capa;
+    for (const x of document.querySelectorAll("[data-capa]")) x.setAttribute("aria-pressed", String(x === b));
+    const t = distribucion.find((x) => x.nombre === elegida);
+    if (t && bloqueada(t)) elegida = null;
+    dibujarTeclado();
+    if (elegida) elegir(elegida); else dibujarPanel();
+  });
+}
+window.addEventListener("resize", () => { if (catalogo) dibujarTeclado(); });
+function cambiosSinEnviar() {
+  return pendientes() + (hayCambiosColores() ? 1 : 0) + (ajustes && !igual(ajustes, ajustesGuardados) ? 1 : 0);
+}
+window.addEventListener("beforeunload", (e) => {
+  if (catalogo && cambiosSinEnviar()) { e.preventDefault(); e.returnValue = ""; }
+});
+
+// --- Pestañas ------------------------------------------------------------------------------
+function irA(nombre) {
+  for (const d of document.querySelectorAll("[data-pestana]")) d.hidden = d.dataset.pestana !== nombre;
+  for (const b of document.querySelectorAll("[data-ir]")) b.setAttribute("aria-pressed", String(b.dataset.ir === nombre));
+  document.getElementById("barra").hidden = nombre !== "teclas";
+  avisar("", "");
+  try { localStorage.setItem("ak820-pestana", nombre); } catch (e) { /* sin almacenamiento: da igual */ }
+  if (nombre === "teclas" && catalogo) dibujarTeclado();
+  if (nombre === "luces" && catalogo) { teclasLuz = {}; dibujarLuces(); }
+}
+for (const b of document.querySelectorAll("[data-ir]")) b.addEventListener("click", () => irA(b.dataset.ir));
+
+// --- Conexión (cada 3 s) ---------------------------------------------------------------------
+async function vigilarConexion() {
+  const c = document.getElementById("conexion");
+  try {
+    const r = await api("/api/conexion");
+    ponerConexion(r.conexion, r.bateria);
+    const permission = document.getElementById("permission-controls");
+    permission.hidden = !r.needsInputMonitoring;
+    if (!r.conexion) {
+      const wasLoaded = loaded;
+      loaded = false;
+      if (wasLoaded) dibujarTeclado();
+      drawSingleKey();
+      if (r.needsInputMonitoring) {
+        c.textContent = "Permission needed";
+        avisar(r.connectionMessage, "error");
+      } else if (r.connectionMessage) {
+        avisar(r.connectionMessage, "error");
+      }
+    } else if (!loaded) {
+      await iniciarEditor();
+    }
+    ponerEstadoMusica(r.musica, r.musica_error);
+  } catch (e) {
+    c.textContent = tr("Ventana sin conexión con la app");
+    c.className = "conexion no";
+  }
+}
+document.getElementById("input-monitoring").addEventListener("click", () => api("/api/input-monitoring"));
+setInterval(vigilarConexion, 3000);
+
+// Por el receptor 2.4G no se pueden mandar ni imágenes ni colores tecla a tecla.
+let modoConexion = null;
+function ponerConexion(modo, bateria) {
+  const c = document.getElementById("conexion");
+  c.textContent = ({ cable: tr("Conectado por cable"), "2.4g": tr("Conectado con el receptor 2.4G") }[modo] || tr("Sin conectar"))
+    + (bateria ? " · 🔋 " + tr("{porcentaje} %", { porcentaje: bateria }) : "");
+  c.className = "conexion " + (modo ? "si" : "no");
+  if (modo !== modoConexion) {
+    modoConexion = modo;
+    if (catalogo) dibujarPintor();
+  }
+}
+
+// --- Luces ---------------------------------------------------------------------------------------
+const NOMBRE_EFECTO = { fijo: tr("Fijo"), respirar: tr("Respirar"), espectro: tr("Espectro"), rodar: tr("Ola"), ondas: tr("Ondas"),
+  colores: tr("Colores"), desplazar: tr("Desplazar"), girar: tr("Girar"), fluir: tr("Fluir"), latido: tr("Latido"), lluvia: tr("Lluvia"),
+  brillos: tr("Destellos"), explosion: tr("Explosión"), lanzar: tr("Lanzar"), ondulas: tr("Ondulaciones"), inclinar: tr("Inclinar"),
+  lanzadera: tr("Lanzadera"), "una-tecla": tr("Al pulsar se enciende"), "una-tecla-off": tr("Al pulsar se apaga"),
+  nuboso: "Cloud", flores: "Flowers", ola: "Wave", dibujos: "Cartoon", escanear: "Scan", veloz: "Speed",
+  personal: tr("🎨 Tecla a tecla") };
+const PRIMEROS_EFECTOS = ["fijo", "respirar", "espectro", "rodar", "personal"];
+const NOMBRE_DIRECCION = { izquierda: tr("Hacia la izquierda"), derecha: tr("Hacia la derecha"), arriba: tr("Hacia arriba"), abajo: tr("Hacia abajo") };
+const MUESTRAS = { FF0000: tr("Rojo"), FF6000: tr("Naranja"), FFD000: tr("Amarillo"), "00FF00": tr("Verde"), "00FFFF": tr("Cian"),
+  "0000FF": tr("Azul"), "8000FF": tr("Morado"), FF00FF: tr("Rosa"), FFFFFF: tr("Blanco") };
+let luces = { efecto: "fijo", color: "0000FF", brillo: 5, velocidad: 3, direccion: "izquierda", arcoiris: false };
+const NOMBRE_MODO_MUSICA = { "verde-amarillo-rojo": tr("Verde, amarillo y rojo"), arcoiris: tr("Arcoíris"),
+  "arcoiris-inverso": tr("Arcoíris al revés"), degradado: tr("Degradado"), ciclo: tr("Ciclo de colores"), blanco: tr("Blanco"),
+  rojo: tr("Rojo"), naranja: tr("Naranja"), amarillo: tr("Amarillo"), verde: tr("Verde"), azul: tr("Azul") };
+let verMusica = false, musicaModo = null, modoMusicaElegido = "verde-amarillo-rojo", ultimoErrorMusica = "";
+let lucesApagadas = false, enviandoLuces = false, lucesOtraVez = false, esperaLuces = null;
+let savingKeyColor = false, savingPaint = false;
+
+function prepararLuces() {
+  const caja = document.getElementById("efectos");
+  const orden = [...PRIMEROS_EFECTOS, ...catalogo.efectos.filter((e) => !PRIMEROS_EFECTOS.includes(e))];
+  for (const e of orden) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.efecto = e;
+    b.textContent = NOMBRE_EFECTO[e] || e;
+    b.addEventListener("click", () => cambiarLuces({ efecto: e }));
+    caja.append(b);
+  }
+  const botonMusica = document.createElement("button");
+  botonMusica.type = "button";
+  botonMusica.dataset.efecto = "musica";
+  botonMusica.textContent = tr("🎵 Música");
+  botonMusica.addEventListener("click", () => { verMusica = true; dibujarLuces(); });
+  caja.append(botonMusica);
+  const modos = document.getElementById("modos-musica");
+  for (const modo of catalogo.modos_musica) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.modoMusica = modo;
+    b.textContent = NOMBRE_MODO_MUSICA[modo] || modo;
+    b.addEventListener("click", () => {
+      modoMusicaElegido = modo;
+      if (musicaModo) ponerMusica(modo); else dibujarLuces();
+    });
+    modos.append(b);
+  }
+  document.getElementById("boton-musica").addEventListener("click", () =>
+    musicaModo ? pararMusica() : ponerMusica(modoMusicaElegido));
+  const muestras = document.getElementById("muestras");
+  for (const [hexa, nombre] of Object.entries(MUESTRAS).reverse()) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "muestra";
+    b.dataset.color = hexa;
+    b.title = nombre;
+    b.style.background = "#" + hexa;
+    b.addEventListener("click", () => cambiarLuces({ color: hexa, arcoiris: false }));
+    muestras.prepend(b);
+  }
+  document.getElementById("color").addEventListener("input", (e) =>
+    cambiarLuces({ color: e.target.value.slice(1).toUpperCase(), arcoiris: false }));
+  document.getElementById("arcoiris").addEventListener("change", (e) => cambiarLuces({ arcoiris: e.target.checked }));
+  document.getElementById("brillo").addEventListener("input", (e) => cambiarLuces({ brillo: +e.target.value }));
+  document.getElementById("velocidad").addEventListener("input", (e) => cambiarLuces({ velocidad: +e.target.value }));
+  const direccion = document.getElementById("direccion");
+  for (const d of catalogo.direcciones) {
+    const o = document.createElement("option");
+    o.value = d;
+    o.textContent = NOMBRE_DIRECCION[d] || d;
+    direccion.append(o);
+  }
+  direccion.addEventListener("change", () => cambiarLuces({ direccion: direccion.value }));
+  const keyChoice = document.getElementById("single-key");
+  for (const key of distribucion) {
+    const name = luzDe(key);
+    if (name && catalogo.teclas_con_luz.includes(name)) {
+      keyChoice.add(new Option(tr(key.etiqueta || "Espacio"), name));
+    }
+  }
+  keyChoice.addEventListener("change", drawSingleKey);
+  document.getElementById("apply-single-key").addEventListener("click", applySingleKey);
+  document.getElementById("apagar-luces").addEventListener("click", apagarLuces);
+}
+
+function dibujarLuces() {
+  for (const b of document.querySelectorAll("#efectos button"))
+    b.setAttribute("aria-pressed", String(b.dataset.efecto === "musica" ? verMusica
+                                          : !verMusica && !lucesApagadas && b.dataset.efecto === luces.efecto));
+  for (const b of document.querySelectorAll(".muestra"))
+    b.setAttribute("aria-pressed", String(!luces.arcoiris && b.dataset.color === luces.color));
+  document.getElementById("color").value = "#" + luces.color.toLowerCase();
+  document.getElementById("arcoiris").checked = !!luces.arcoiris;
+  document.getElementById("brillo").value = Math.max(1, luces.brillo);
+  document.getElementById("brillo-valor").textContent = tr("{n} de 5", { n: Math.max(1, luces.brillo) });
+  const velocidad = document.getElementById("velocidad");
+  velocidad.value = luces.velocidad;
+  velocidad.disabled = luces.efecto === "fijo";
+  document.getElementById("velocidad-valor").textContent = luces.efecto === "fijo" ? tr("(el efecto Fijo no se mueve)") : tr("{n} de 5", { n: luces.velocidad });
+  document.getElementById("direccion").value = luces.direccion;
+  const directionNames = {
+    girar:["Clockwise", "Counterclockwise"],
+    rodar:["Bottom to top", "Top to bottom"],
+    veloz:["Outside in", "Inside out"],
+  };
+  const direction = document.getElementById("direccion");
+  const names = directionNames[luces.efecto];
+  direction.disabled = !names;
+  for (const [index, option] of [...direction.options].entries())
+    option.textContent = names ? names[index] : NOMBRE_DIRECCION[option.value];
+  document.getElementById("apagar-luces").textContent = lucesApagadas ? tr("Encender las luces") : tr("Apagar las luces");
+  const personal = luces.efecto === "personal" && !lucesApagadas && !verMusica;
+  document.getElementById("controles-efecto").hidden = personal || verMusica;
+  document.getElementById("pintor").hidden = !personal;
+  document.getElementById("musica-panel").hidden = !verMusica;
+  if (personal) dibujarPintor();
+  if (verMusica) dibujarMusica();
+  drawSingleKey();
+}
+
+function drawSingleKey() {
+  const panel = document.getElementById("single-key-panel");
+  const button = document.getElementById("apply-single-key");
+  const editingStatic = luces.efecto === "fijo" && !luces.arcoiris;
+  const editingPerKey = luces.efecto === "personal";
+  panel.hidden = !loaded || verMusica || lucesApagadas || !(editingStatic || editingPerKey);
+  const pendingColors = editingPerKey && hayCambiosColores();
+  button.disabled = panel.hidden || !document.getElementById("single-key").value || pendingColors ||
+                    savingKeyColor || savingPaint || enviandoLuces || esperaLuces !== null;
+  document.getElementById("single-key-note").textContent = pendingColors
+    ? "Save or discard the changes in the color painter first."
+    : editingStatic ? "Switches to Per key and keeps the current color on the other keys." : "";
+}
+
+async function applySingleKey() {
+  const button = document.getElementById("apply-single-key");
+  if (button.disabled) return;
+  const selector = document.getElementById("single-key");
+  const colorPicker = document.getElementById("single-key-color");
+  const key = selector.value;
+  const color = colorPicker.value.slice(1);
+  const label = selector.selectedOptions[0].textContent;
+  savingKeyColor = true;
+  drawSingleKey();
+  button.textContent = "Saving…";
+  try {
+    const result = await api("/api/single-key-color", { key, color });
+    if (!result.ok) throw new Error(result.mensaje);
+    coloresGuardados = result.colores;
+    colores = copia(result.colores);
+    ultimoEfectoEnviado = "personal";
+    ponerLuces(result.luces);
+    dibujarLuces();
+    avisar(`Saved color for ${label}.`, "bien");
+  } catch (error) {
+    avisar(error.message, "error");
+  } finally {
+    savingKeyColor = false;
+    button.textContent = "Apply to key";
+    drawSingleKey();
+  }
+}
+
+function cambiarLuces(cambio) {
+  if (savingKeyColor) return;
+  Object.assign(luces, cambio);
+  lucesApagadas = false;
+  verMusica = false;
+  clearTimeout(esperaLuces);
+  esperaLuces = null;
+  if (luces.efecto === "personal") {                // se manda con «Enviar al teclado»
+    document.getElementById("estado-luces").textContent = "";
+  } else {
+    esperaLuces = setTimeout(enviarLuces, 300); // Debounce slider changes.
+  }
+  dibujarLuces();
+}
+
+async function enviarLuces() {
+  esperaLuces = null;
+  if (enviandoLuces) { lucesOtraVez = true; return; }
+  enviandoLuces = true;
+  if (musicaModo) await pararMusica();
+  const estado = document.getElementById("estado-luces");
+  estado.textContent = tr("Aplicando…");
+  try {
+    const r = await api("/api/luces", { luces });
+    if (r.ok) ultimoEfectoEnviado = luces.efecto;
+    estado.textContent = r.ok ? tr("Aplicado ✓") : "";
+    if (!r.ok) avisar(r.mensaje, "error");
+  } catch (e) { estado.textContent = ""; avisar(e.message, "error"); }
+  enviandoLuces = false;
+  if (lucesOtraVez) { lucesOtraVez = false; enviarLuces(); }
+  drawSingleKey();
+}
+
+// El mismo botón apaga y enciende: al encender vuelven las luces de antes (las recuerda ak820.py).
+async function apagarLuces() {
+  if (savingKeyColor) return;
+  const estado = document.getElementById("estado-luces");
+  const encender = lucesApagadas;
+  estado.textContent = encender ? tr("Encendiendo…") : tr("Apagando…");
+  try {
+    const r = await api(encender ? "/api/encender" : "/api/apagar", {});
+    if (r.ok) {
+      ponerLuces(r.luces);
+      if (!encender) lucesApagadas = true;
+      dibujarLuces();
+      estado.textContent = encender ? tr("Encendidas ✓") : tr("Luces apagadas ✓");
+    } else { estado.textContent = ""; avisar(r.mensaje, "error"); }
+  } catch (e) { estado.textContent = ""; avisar(e.message, "error"); }
+}
+
+function ponerLuces(guardadas) {
+  if (!guardadas) return;
+  if (guardadas.efecto === "apagado") {
+    lucesApagadas = true;
+    if (guardadas.anterior) luces = { ...luces, ...guardadas.anterior };   // lo que vuelve al encender
+    return;
+  }
+  lucesApagadas = false;
+  luces = { ...luces, ...guardadas };
+}
+
+// --- Modo música ---------------------------------------------------------------------------------
+function dibujarMusica() {
+  for (const b of document.querySelectorAll("[data-modo-musica]"))
+    b.setAttribute("aria-pressed", String(b.dataset.modoMusica === (musicaModo || modoMusicaElegido)));
+  document.getElementById("boton-musica").textContent = musicaModo ? tr("■ Parar") : tr("▶︎ Empezar");
+  document.getElementById("estado-musica").textContent = musicaModo
+    ? tr("En marcha ({modo}). Pon música en el Mac.", { modo: (NOMBRE_MODO_MUSICA[musicaModo] || musicaModo).toLowerCase() }) : "";
+}
+
+async function ponerMusica(modo) {
+  try {
+    const r = await api("/api/musica", { accion: "empezar", modo });
+    if (!r.ok) avisar(r.mensaje, "error");
+    musicaModo = r.musica;
+  } catch (e) { avisar(e.message, "error"); }
+  dibujarLuces();
+}
+
+async function pararMusica() {
+  try {
+    const r = await api("/api/musica", { accion: "parar" });
+    musicaModo = r.musica;
+  } catch (e) { avisar(e.message, "error"); }
+  dibujarLuces();
+}
+
+function ponerEstadoMusica(modo, error) {
+  if (error && error !== ultimoErrorMusica) avisar(error, "error");
+  ultimoErrorMusica = error || "";
+  if (modo !== musicaModo) {
+    musicaModo = modo;
+    if (modo) { verMusica = true; modoMusicaElegido = modo; }
+    if (catalogo) dibujarLuces();
+  }
+}
+
+// --- Colores tecla a tecla ------------------------------------------------------------------------
+let colores = { fondo: "000000", teclas: {}, brillo: 5 }, coloresGuardados = null;
+let pincel = "FF0000", pintando = false, teclasLuz = {};
+const luzDe = (t) => t.nombre || (t.etiqueta === "Fn" ? "fn" : null);
+const hayCambiosColores = () => coloresGuardados !== null && !igual(colores, coloresGuardados);
+
+function prepararPintor() {
+  const pinceles = document.getElementById("pinceles");
+  const opciones = { ...MUESTRAS, "000000": tr("Apagada"), "": tr("Quitar (como el resto)") };
+  for (const [hexa, nombre] of Object.entries(opciones).reverse()) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "muestra" + (hexa === "" ? " goma" : hexa === "000000" ? " negra" : "");
+    b.dataset.pincel = hexa;
+    b.title = nombre;
+    if (hexa && hexa !== "000000") b.style.background = "#" + hexa;
+    b.addEventListener("click", () => { pincel = hexa || null; dibujarPintor(); });
+    pinceles.prepend(b);
+  }
+  document.getElementById("pincel-color").addEventListener("input", (e) => {
+    pincel = e.target.value.slice(1).toUpperCase(); dibujarPintor(); });
+  document.getElementById("fondo").addEventListener("input", (e) => {
+    colores.fondo = e.target.value.slice(1).toUpperCase(); dibujarPintor(); });
+  document.getElementById("fondo-apagado").addEventListener("click", () => { colores.fondo = "000000"; dibujarPintor(); });
+  document.getElementById("pintar-todas").addEventListener("click", () => {
+    colores = { ...colores, fondo: pincel || colores.fondo, teclas: {} }; dibujarPintor(); });
+  document.getElementById("pintura-brillo").addEventListener("input", (e) => { colores.brillo = +e.target.value; dibujarPintor(); });
+  document.getElementById("enviar-colores").addEventListener("click", enviarColores);
+  document.getElementById("deshacer-colores").addEventListener("click", () => { colores = copia(coloresGuardados); dibujarPintor(); });
+  window.addEventListener("pointerup", () => { pintando = false; });
+  window.addEventListener("resize", () => { teclasLuz = {}; if (!document.getElementById("pintor").hidden) dibujarPintor(); });
+}
+
+function pintar(luz) {
+  if (pincel === null) delete colores.teclas[luz]; else colores.teclas[luz] = pincel;
+  dibujarPintor();
+}
+
+function construirPintura() {
+  const zona = document.getElementById("pintura");
+  const disponible = zona.parentElement.clientWidth - 28;
+  if (disponible <= 0) return false;
+  const escala = Math.min(1.6, disponible / ANCHO_TECLADO);
+  zona.style.width = ANCHO_TECLADO * escala + "px";
+  zona.style.height = ALTO_TECLADO * escala + "px";
+  zona.replaceChildren();
+  teclasLuz = {};
+  for (const t of distribucion) {
+    const luz = luzDe(t);
+    if (!luz || !catalogo.teclas_con_luz.includes(luz)) continue;
+    const d = document.createElement("div");
+    d.className = "luz";
+    d.textContent = tr(t.etiqueta);
+    Object.assign(d.style, { left: t.x * escala + "px", top: t.y * escala + "px",
+                             width: t.ancho * escala + "px", height: t.alto * escala + "px" });
+    d.addEventListener("pointerdown", (e) => { e.preventDefault(); pintando = true; pintar(luz); });
+    d.addEventListener("pointerenter", () => { if (pintando) pintar(luz); });
+    teclasLuz[luz] = d;
+    zona.append(d);
+  }
+  return true;
+}
+
+function dibujarPintor() {
+  if (!Object.keys(teclasLuz).length && !construirPintura()) return;
+  for (const [luz, d] of Object.entries(teclasLuz)) {
+    const color = colores.teclas[luz] || colores.fondo;
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(color.slice(i, i + 2), 16));
+    d.style.background = "#" + color;
+    d.style.color = r * 0.3 + g * 0.59 + b * 0.11 > 150 ? "#111" : "#f2f2f4";
+    d.classList.toggle("apagada", color === "000000");
+    d.classList.toggle("propia", luz in colores.teclas);
+  }
+  for (const b of document.querySelectorAll("[data-pincel]"))
+    b.setAttribute("aria-pressed", String((b.dataset.pincel || null) === pincel));
+  if (pincel) document.getElementById("pincel-color").value = "#" + pincel.toLowerCase();
+  document.getElementById("fondo").value = "#" + colores.fondo.toLowerCase();
+  document.getElementById("pintura-brillo").value = colores.brillo;
+  document.getElementById("pintura-brillo-valor").textContent = tr("{n} de 5", { n: colores.brillo });
+  const cambios = hayCambiosColores() || (luces.efecto === "personal" && ultimoEfectoEnviado !== "personal");
+  document.getElementById("deshacer-colores").disabled = !hayCambiosColores();
+  document.getElementById("solo-cable-colores").hidden = modoConexion !== "2.4g";
+  document.getElementById("enviar-colores").disabled = modoConexion === "2.4g" || savingPaint || savingKeyColor;
+  drawSingleKey();
+  document.getElementById("estado-colores").textContent = hayCambiosColores() ? tr("Hay cambios sin enviar.") : "";
+  document.getElementById("enviar-colores").textContent = cambios ? tr("Enviar al teclado") : tr("Reenviar al teclado");
+}
+
+let ultimoEfectoEnviado = null;
+async function enviarColores() {
+  if (savingPaint || savingKeyColor) return;
+  savingPaint = true;
+  drawSingleKey();
+  const boton = document.getElementById("enviar-colores");
+  const estado = document.getElementById("estado-colores");
+  boton.disabled = true;
+  estado.textContent = tr("Enviando…");
+  try {
+    const r = await api("/api/colores", { colores });
+    if (r.ok) {
+      coloresGuardados = r.colores;
+      colores = copia(r.colores);
+      ultimoEfectoEnviado = "personal";
+      ponerLuces(r.luces);
+      dibujarPintor();
+      estado.textContent = tr("Guardado en el teclado ✓");
+    } else {
+      estado.textContent = "";
+      avisar(r.mensaje, "error");
+    }
+  } catch (e) { estado.textContent = ""; avisar(e.message, "error"); }
+  savingPaint = false;
+  boton.disabled = false;
+  drawSingleKey();
+}
+
+// --- Ajustes ------------------------------------------------------------------------------------
+const NOMBRE_FN = { mantener: tr("Solo mientras se mantiene pulsada (de fábrica)"), alternar: tr("Un toque la activa y otro la quita") };
+const NOMBRE_REPOSO = { "1": tr("1 minuto"), "5": tr("5 minutos"), "30": tr("30 minutos"), nunca: tr("Nunca") };
+const NOMBRE_BLOQUEO = { win: tr("Tecla Win"), nkro: "N-key rollover", wasd: "Swap WASD and arrow keys" };
+let ajustesGuardados = null, ajustes = null;
+
+function prepararAjustes() {
+  document.getElementById("respuesta").addEventListener("input", (e) => { ajustes.respuesta = +e.target.value; dibujarAjustes(); });
+  document.getElementById("guardar-ajustes").addEventListener("click", () => guardarAjustes({ ajustes }));
+  document.getElementById("ajustes-fabrica").addEventListener("click", () => guardarAjustes({ ajustes: { fabrica: true } }));
+}
+
+function dibujarAjustes() {
+  if (!ajustes) return;
+  const fn = document.getElementById("ajuste-fn");
+  fn.replaceChildren(botonesOpciones(NOMBRE_FN, ajustes.fn, (v) => { ajustes.fn = v; dibujarAjustes(); }));
+  fn.firstChild.style.margin = "0";
+  const reposo = document.getElementById("ajuste-reposo");
+  reposo.replaceChildren();
+  for (const valor of catalogo.reposo) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = NOMBRE_REPOSO[valor] + (valor === "5" ? tr(" (de fábrica)") : "");
+    b.setAttribute("aria-pressed", String(valor === ajustes.reposo));
+    b.addEventListener("click", () => { ajustes.reposo = valor; dibujarAjustes(); });
+    reposo.append(b);
+  }
+  document.getElementById("polling").replaceChildren(botonesOpciones(
+    {0:"125 Hz", 1:"250 Hz", 2:"500 Hz", 3:"1,000 Hz"}, String(ajustes.polling),
+    (v) => { ajustes.polling = Number(v); dibujarAjustes(); }));
+  document.getElementById("respuesta").value = ajustes.respuesta;
+  document.getElementById("respuesta-valor").textContent = `${ajustes.respuesta} of 4`;
+  const bloqueos = document.getElementById("ajuste-bloqueos");
+  bloqueos.replaceChildren();
+  for (const [clave, nombre] of Object.entries(NOMBRE_BLOQUEO)) {
+    const l = document.createElement("label");
+    l.className = "chip";
+    const c = document.createElement("input");
+    c.type = "checkbox";
+    c.checked = !!ajustes.bloquear[clave];
+    c.addEventListener("change", () => { ajustes.bloquear[clave] = c.checked; dibujarAjustes(); });
+    l.append(c, nombre);
+    bloqueos.append(l);
+  }
+  const cambiados = !igual(ajustes, ajustesGuardados);
+  const guardar = document.getElementById("guardar-ajustes");
+  guardar.disabled = !cambiados;
+  guardar.textContent = cambiados ? tr("Guardar en el teclado") : tr("Guardado");
+}
+
+async function guardarAjustes(cuerpo) {
+  const estado = document.getElementById("estado-ajustes");
+  estado.textContent = tr("Enviando…");
+  try {
+    const r = await api("/api/sistema", cuerpo);
+    if (r.ok) {
+      ajustesGuardados = r.ajustes;
+      ajustes = copia(r.ajustes);
+      estado.textContent = tr("Guardado en el teclado ✓");
+    } else {
+      estado.textContent = "";
+      avisar(r.mensaje, "error");
+    }
+  } catch (e) { estado.textContent = ""; avisar(e.message, "error"); }
+  dibujarAjustes();
+}
+
+// --- Ayuda: qué hace cada cosa del teclado (manual del AK820 Pro) ---------------------------------
+function dibujarAyuda() {
+  document.getElementById("ayuda").innerHTML = `
+    <h2>Ajazz AK820 Wired</h2>
+    <table>
+      <tr><th>Control</th><th>Action</th></tr>
+      <tr><td><kbd>Keys</kbd></td><td>Click a key, choose a remap, then send the changes to the keyboard.</td></tr>
+      <tr><td><kbd>Lights</kbd></td><td>Choose a built-in effect or paint individual keys. Music mode uses your Mac’s audio.</td></tr>
+      <tr><td><kbd>Knob</kbd></td><td>Turn for volume. Press for mute.</td></tr>
+      <tr><td><kbd>F1–F12</kbd></td><td>The keyboard’s Mac mode can send system controls on the top row. Try holding Fn to use the standard function keys.</td></tr>
+      <tr><td><kbd>Fn</kbd></td><td>The wired model has one editable layer.</td></tr>
+      <tr><td><kbd>Macros</kbd></td><td>Macro editing is unavailable on this firmware.</td></tr>
+    </table>`;
+}
+
+// --- Volver a mandar lo guardado / dejar de fábrica ------------------------------------------------
+// Antes de «de fábrica» el Mac guarda una copia de lo que había: este botón la recupera.
+let copiaFabrica = null;
+function ponerCopiaFabrica(fecha) {
+  copiaFabrica = fecha;
+  const b = document.getElementById("deshacer-fabrica");
+  b.hidden = !fecha;
+  if (fecha) b.textContent = tr("Recuperar lo de antes de «de fábrica» ({fecha})", { fecha });
+}
+const BOTONES_REINICIO = ["reenviar-todo", "todo-fabrica", "deshacer-fabrica"];
+async function reinicio(ruta, textoHecho) {
+  const estado = document.getElementById("estado-reinicio");
+  estado.textContent = tr("Enviando…");
+  for (const id of BOTONES_REINICIO) document.getElementById(id).disabled = true;
+  try {
+    const r = await api(ruta, {});
+    if ("copia_fabrica" in r) ponerCopiaFabrica(r.copia_fabrica);
+    if (r.ok) {
+      guardado = r.config;
+      actual = copia(r.config);
+      ponerLuces(r.luces);
+      coloresGuardados = r.colores; colores = copia(r.colores);
+      ajustesGuardados = r.ajustes; ajustes = copia(r.ajustes);
+      // Por 2.4G el receptor no confirma que el teclado lo reciba: se enseña lo que dice ak820.py.
+      estado.textContent = r.conexion === "2.4g" ? r.mensaje.split("\n").pop() : textoHecho;
+      dibujarTeclado(); dibujarLuces(); dibujarAjustes();
+    } else {
+      estado.textContent = "";
+      avisar(r.mensaje, "error");
+    }
+  } catch (e) { estado.textContent = ""; avisar(e.message, "error"); }
+  for (const id of BOTONES_REINICIO) document.getElementById(id).disabled = false;
+}
+document.getElementById("reenviar-todo").addEventListener("click", () =>
+  reinicio("/api/reenviar", tr("Configuración de este Mac mandada al teclado ✓")));
+document.getElementById("todo-fabrica").addEventListener("click", () => {
+  if (confirm(tr("¿Dejar el teclado de fábrica? Se borran las teclas cambiadas, las macros, los colores tecla a tecla y los ajustes. En este Mac queda una copia para poder deshacerlo.")))
+    reinicio("/api/fabrica", tr("Teclado de fábrica ✓"));
+});
+document.getElementById("deshacer-fabrica").addEventListener("click", () =>
+  reinicio("/api/deshacer-fabrica", tr("Recuperado lo de antes y mandado al teclado ✓")));
+
+// --- Carga y vuelta a la ventana -----------------------------------------------------------------
+function aplicarEstado(r, primeraVez) {
+  if (primeraVez) {
+    distribucion = r.distribucion;
+    catalogo = r.catalogo;
+    guardado = r.config;
+    actual = copia(r.config);
+  } else if (!igual(r.config, guardado)) {
+    guardado = r.config;
+    if (pendientes()) {
+      avisar(tr("Las teclas se han cambiado desde fuera de esta ventana. Tus cambios sin enviar siguen aquí; ") +
+             tr("«Deshacer cambios» enseña lo que tiene ahora el teclado."), "info");
+    } else {
+      actual = copia(r.config);
+    }
+    if (elegida) elegir(elegida);
+  }
+  if (!enviandoLuces) { ponerLuces(r.luces); ultimoEfectoEnviado = r.luces ? r.luces.efecto : null; }
+  if (!coloresGuardados || !hayCambiosColores()) { coloresGuardados = r.colores; colores = copia(r.colores); }
+  if (!ajustes || igual(ajustes, ajustesGuardados)) { ajustesGuardados = r.ajustes; ajustes = copia(r.ajustes); }
+  ponerConexion(r.conexion);
+  ponerEstadoMusica(r.musica, "");
+  ponerCopiaFabrica(r.copia_fabrica);
+  dibujarTeclado();
+  dibujarLuces();
+
+  dibujarAjustes();
+}
+
+// Al volver a la ventana, se recoge lo que se haya cambiado desde fuera (terminal o menú).
+window.addEventListener("focus", async () => {
+  if (!loaded || enviando) return;
+  try { aplicarEstado(await api("/api/estado"), false); } catch (e) { /* se verá en el indicador */ }
+});
+
+let prepared = false;
+async function iniciarEditor() {
+  if (initializing || loaded) return;
+  initializing = true;
+  try {
+    const r = await api("/api/estado");
+    if (!prepared) {
+      prepararLuces();
+      prepararPintor();
+      prepararAjustes();
+      prepared = true;
+    }
+    loaded = true;
+    aplicarEstado(r, !guardadoInicial);
+    guardadoInicial = true;
+    avisar("", "");
+  } catch (e) {
+    avisar(e.message, "error");
+  } finally {
+    initializing = false;
+  }
+}
+let guardadoInicial = false;
+dibujarAyuda();
+let initialTab = "teclas";
+try { initialTab = localStorage.getItem("ak820-pestana") || "teclas"; } catch (e) { /* local storage unavailable */ }
+irA(document.querySelector(`[data-ir="${initialTab}"]`) ? initialTab : "teclas");
+dibujarTeclado();
+vigilarConexion();
+</script>
+</body>
+</html>
